@@ -61,7 +61,7 @@ class CSICamera(Camera):
             recv_data = conn.recv(1024).decode()
             if recv_data == "kill":
                 self.cap.release()
-                self.sock.sendall("is all yours".encode())
+                conn.sendall("is all yours".encode())
                 conn.close()
                 self.sock.close()
                 break
@@ -73,8 +73,15 @@ class CSICamera(Camera):
             self.sock.connect(self.sock_addr)
         except:
             raise RuntimeError('Could not connect to other python kernel that using the CSI camera')
-        self.sock.sendall("kill".encode())
-        recv_data = self.sock.recv(1024).decode()
+        self.sock.settimeout(30)
+        try:
+            self.sock.sendall("kill".encode())
+        except:
+            raise RuntimeError("Failed to send kill signal to other python kernel")
+        try:
+            recv_data = self.sock.recv(1024).decode()
+        except:
+            raise RuntimeError("Failed to receive reply from other python kernel")
         if recv_data != "is all yours":
             raise RuntimeError("Failed to close other, message: " + recv_data)
         self.sock.close()

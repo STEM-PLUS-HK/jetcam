@@ -33,10 +33,13 @@ class CSICamera(Camera):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.bind(self.sock_addr)
         self.sock.listen(1)
+        self.sock.settimeout(1)
+        self.sock_recv_thread_run = True
         self.sock_recv_thread = threading.Thread(target=self._sock_recv)
         self.sock_recv_thread.start()
 
         atexit.register(self.cap.release)
+        atexit.register(self._end_sock_recv_thread)
                 
     def _gst_str(self):
         return 'nvarguscamerasrc sensor-id=%d ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
@@ -56,15 +59,20 @@ class CSICamera(Camera):
             raise RuntimeError('Could not read image from camera.')
             
     def _sock_recv(self):
-        conn, addr = self.sock.accept()
-        while True:
-            recv_data = conn.recv(1024).decode()
-            if recv_data == "kill":
-                self.cap.release()
-                conn.sendall("is all yours".encode())
-                conn.close()
-                self.sock.close()
-                break
+        while self.sock_recv_thread_run
+            conn, addr = self.sock.accept()
+            while True:
+                recv_data = conn.recv(1024).decode()
+                if recv_data == "kill":
+                    self.cap.release()
+                    conn.sendall("is all yours".encode())
+                    conn.close()
+                    self.sock.close()
+                    break
+    
+    def _end_sock_recv_thread(self):
+        self.sock_recv_thread_run = False
+        self.sock_recv_thread.join()
             
     def _remote_close(self):
         # try to connect other

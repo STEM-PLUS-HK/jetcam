@@ -59,7 +59,7 @@ class CSICamera(Camera):
             raise RuntimeError('Could not read image from camera.')
             
     def _sock_recv(self):
-        while self.sock_recv_thread_run
+        while self.sock_recv_thread_run:
             conn, addr = self.sock.accept()
             while True:
                 recv_data = conn.recv(1024).decode()
